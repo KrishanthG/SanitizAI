@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sanitizai"
+version = "0.1.0"
+description = "Lightning-fast, zero-overhead, 100% local Python utility to redact PII and secret API keys before external AI prompts, logs, or storage."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Krishanth G" },
+]
+keywords = [
+    "sanitizai",
+    "pii",
+    "redaction",
+    "masking",
+    "llm-guard",
+    "prompt-security",
+    "secrets",
+    "api-keys",
+    "privacy",
+    "zero-dependency",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Security",
+    "Topic :: Security :: Cryptography",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Text Processing :: Filters",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+]
+docs = [
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/sanitizai/sanitizai"
+Documentation = "https://github.com/sanitizai/sanitizai#readme"
+Repository = "https://github.com/sanitizai/sanitizai.git"
+Issues = "https://github.com/sanitizai/sanitizai/issues"
+PyPI = "https://pypi.org/project/sanitizai/0.1.0/"
+LinkedIn = "https://www.linkedin.com/in/krishanth-g"
+
+[project.scripts]
+sanitizai = "sanitizai.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["sanitizai*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]

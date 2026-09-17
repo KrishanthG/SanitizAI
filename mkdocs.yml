@@ -1,0 +1,66 @@
+site_name: SanitizAI 🛡️⚡
+site_description: Lightning-fast, zero-overhead, 100% local text sanitization utility for PII, API keys, and secret credentials.
+site_author: Krishanth G
+site_url: https://sanitizai.github.io/sanitizai/
+repo_name: sanitizai/sanitizai
+repo_url: https://github.com/sanitizai/sanitizai
+
+theme:
+  name: material
+  language: en
+  palette:
+    # Light Mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    # Dark Mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - search.highlight
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - tables
+  - attr_list
+  - md_in_html
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - API Reference: api-reference.md
+  - CLI Guide: cli-guide.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/in/krishanth-g
+    - icon: fontawesome/brands/github
+      link: https://github.com/sanitizai/sanitizai
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/sanitizai/0.1.0/
