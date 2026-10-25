@@ -64,3 +64,290 @@ SanitizAI automatically identifies and scrubs developer credentials across all t
 
 ```bash
 pip install sanitizai
+
+```
+
+(Requires Python 3.10 or higher. Zero external runtime dependencies!)
+
+## Quick Start (Python API)
+
+### 1. Basic Cleaning
+
+```python
+import sanitizai
+
+raw_prompt = (
+    "User alice.smith@enterprise.com reported an issue. "
+    "Her phone is 9876543210 and she used API key "
+    "sk-proj-1234567890abcdef1234567890abcdef1234567890. "
+    "Server IP was 192.168.1.50."
+)
+
+clean_prompt = sanitizai.clean(raw_prompt)
+print(clean_prompt)
+```
+
+**Output:**
+
+```text
+User [EMAIL_REDACTED] reported an issue. Her phone is [PHONE_REDACTED] and she used API key [SECRET_KEY_REDACTED]. Server IP was [IP_ADDRESS_REDACTED].
+```
+
+### 2. Selective Redaction (PII Only or Secrets Only)
+
+```python
+from sanitizai import redact_pii, redact_secrets
+
+# Redact only PII, keep technical keys intact
+pii_safe = redact_pii(
+    "Contact me at dev@test.com with key sk-abc1234567890abcdef1234567890"
+)
+
+# Output:
+# Contact me at [EMAIL_REDACTED] with key sk-abc1234567890abcdef1234567890
+
+# Redact only secrets, keep user contact information
+secret_safe = redact_secrets(
+    "Contact me at dev@test.com with key sk-abc1234567890abcdef1234567890"
+)
+
+# Output:
+# Contact me at dev@test.com with key [SECRET_KEY_REDACTED]
+```
+
+### 3. Custom Blacklists & Custom Regex Patterns
+
+```python
+from sanitizai import SanitizAI
+
+sanitizer = SanitizAI(
+    blacklist_words=["ProjectTitan", "AcmeInternal"],
+    blacklist_replacement="[INTERNAL_CONFIDENTIAL]",
+    custom_patterns={
+        r"TICKET-\d+": "[TICKET_REF]",
+    }
+)
+
+text = (
+    "Working on ProjectTitan for AcmeInternal. "
+    "Reference TICKET-4912."
+)
+
+print(sanitizer.clean(text))
+```
+
+**Output:**
+
+```text
+Working on [INTERNAL_CONFIDENTIAL] for [INTERNAL_CONFIDENTIAL]. Reference [TICKET_REF].
+```
+
+### 4. Non-Destructive Analysis (Inspection)
+
+Inspect text and count detected sensitive entities without modifying the original string.
+
+```python
+from sanitizai import SanitizAI
+
+sanitizer = SanitizAI()
+
+stats = sanitizer.analyze(
+    "Call 555-123-4567 or email team@test.com "
+    "with key sk-1234567890abcdef1234567890"
+)
+
+print(stats)
+```
+
+**Output:**
+
+```python
+{
+    'openai_groq_anthropic_key': 1,
+    'email': 1,
+    'phone_intl': 1
+}
+```
+
+### 5. Large Stream Processing (Log Files / Generators)
+
+```python
+from sanitizai import SanitizAI
+
+sanitizer = SanitizAI()
+
+with open("massive_production.log", "r", encoding="utf-8") as infile, \
+     open("sanitized.log", "w", encoding="utf-8") as outfile:
+    for clean_line in sanitizer.clean_stream(infile):
+        outfile.write(clean_line)
+```
+
+## Command Line Interface (CLI)
+
+SanitizAI installs a standalone terminal executable named `sanitizai`.
+
+### Direct String Redaction
+
+```bash
+sanitizai "Contact support@example.com with key sk-1234567890abcdef1234567890"
+```
+
+**Output:**
+
+```text
+Contact [EMAIL_REDACTED] with key [SECRET_KEY_REDACTED]
+```
+
+### Standard Input (Unix Pipeline)
+
+```bash
+# Pipe streaming logs directly
+tail -f access.log | sanitizai
+
+# Sanitize a log file and redirect output
+cat server.log | sanitizai > sanitized.log
+```
+
+### File Input & Output
+
+```bash
+sanitizai -i raw_records.txt -o clean_records.txt
+```
+
+### Display Redaction Statistics
+
+```bash
+sanitizai --stats "Report: admin@bank.com accessed 10.0.0.1 with key sk-1234567890abcdef1234567890"
+```
+
+**Output:**
+
+```text
+Report: [EMAIL_REDACTED] accessed [IP_ADDRESS_REDACTED] with key [SECRET_KEY_REDACTED]
+
+--- SanitizAI Redaction Summary ---
+email: 1
+ipv4: 1
+openai_groq_anthropic_key: 1
+Total Redactions: 3
+-----------------------------------
+```
+
+## Real-World Production Recipes
+
+### Recipe 1: LLM Prompt Guard (OpenAI / Anthropic SDK)
+
+```python
+import os
+import sanitizai
+from openai import OpenAI
+
+client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+
+
+def query_llm_safely(raw_user_input: str) -> str:
+    # 1. Sanitize the user prompt locally before it leaves your server
+    safe_prompt = sanitizai.clean(raw_user_input)
+
+    # 2. Dispatch the sanitized prompt to the LLM
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "user", "content": safe_prompt}
+        ],
+    )
+
+    return response.choices[0].message.content
+```
+
+### Recipe 2: Automatic Python Logging Filter
+
+```python
+import logging
+import sanitizai
+
+
+class SanitizingLogFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        if isinstance(record.msg, str):
+            record.msg = sanitizai.clean(record.msg)
+
+        return True
+
+
+logger = logging.getLogger("production")
+handler = logging.StreamHandler()
+
+handler.addFilter(SanitizingLogFilter())
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
+
+# Automatically mask PII and secrets in log messages
+logger.info(
+    "Failed login for user john@doe.com "
+    "with secret api_key='1234567890abcdef'"
+)
+```
+
+## Performance & Benchmarks
+
+| Toolkit | Runtime Dependencies | Cold Start Latency | Throughput (Lines/sec) |
+|---|---|---|---|
+| SanitizAI | 0 (Pure Python) | < 1 ms | ~60,000+ |
+| Heavy NLP / ML Toolkits | PyTorch, spaCy, Transformers (~2.5 GB) | ~1,500–4,000 ms | ~800 |
+
+**Zero supply-chain vulnerability footprint, zero container bloat, microsecond latency.**
+
+*Note: Benchmark figures are project-reported results and may vary depending on hardware, workload, and test methodology.*
+
+## Running Tests
+
+```bash
+# Clone the repository
+git clone https://github.com/sanitizai/sanitizai.git
+
+# Navigate to the project directory
+cd sanitizai
+
+# Run tests with pytest
+python -m pytest tests/ -v
+```
+
+## Contributing
+
+We welcome community contributions, bug fixes, additional AI key formats, and performance enhancements!
+
+- Please review our [Contributing Guidelines](CONTRIBUTING.md) for development environment setup, branching rules, and test requirements.
+- **Zero-dependency rule:** All PRs must adhere to our zero external runtime dependencies architecture.
+
+## Code of Conduct
+
+SanitizAI is dedicated to providing a respectful, harassment-free, and inclusive experience for everyone. All participants are expected to adhere to the [Contributor Covenant v2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
+
+## Security
+
+Security and vulnerability disclosures are handled with paramount urgency.
+
+- Please review our [Security Policy](SECURITY.md) for threat modeling and supported versions.
+- For responsible disclosure of security vulnerabilities or ReDoS vectors, please report via private GitHub Security Advisories or reach out directly on [LinkedIn](https://www.linkedin.com/in/krishanth-g/).
+- **Do NOT open public issues for security vulnerabilities.**
+
+## Author & Maintainer
+
+Maintained with ❤️ by Krishanth G.
+
+- **LinkedIn:** [krishanth-g](https://www.linkedin.com/in/krishanth-g)
+
+## License
+
+SanitizAI is distributed under the OSI-approved MIT License.
+
+```text
+Copyright (c) 2026 Krishanth G
+```
+
+Licensed under the MIT License.
+
+Free for personal, commercial, and enterprise use.
+
+
